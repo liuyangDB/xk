@@ -1,0 +1,244 @@
+<h2>学生管理</h2>
+<hr>
+<form action="" class="search">
+  <input type="search" name="id" placeholder="可通过学号，姓名查询">
+  <input type="submit" value="查询">
+</form>
+<table class="table table-bordered">
+  <thead>
+    <tr>
+      <th><label for="all"><input type="checkbox" id="all">全选</label></th>
+      <th>编号</th>
+      <th>姓名</th>
+      <th>性别</th>
+      <th>生日</th>
+      <th>班级</th>
+    </tr>
+  </thead>
+  <tbody>
+    
+  </tbody>
+</table>
+
+<div class="opts">
+  <button class="btn btn-danger btn-sm">修改</button>
+  <button class="btn btn-danger btn-sm">添加</button>
+  <button class="btn btn-danger btn-sm">删除</button>
+</div>
+
+<div class="modal fade" tabindex="-1" role="dialog">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+        <h4 class="modal-title">修改学生信息</h4>
+      </div>
+      <div class="modal-body">
+        <form action="" class="studentForm">
+          <input type="hidden" name="id">
+          姓名  <input type="text" name="name">
+          <br>
+          性别  <label for="male">男：</label><input type="radio" name="gender" id="male" value="男"> 
+          <label for="female">女：</label><input type="radio" name="gender" id="female" value="女">
+          <br>
+          生日  <input type="date" name="birth">
+          <br>
+          班级 <select name="class_id" id="">
+            <option value="null">null</option>
+            <option value="1">1</option>
+            <option value="2">2</option>
+            <option value="3">3</option>
+          </select>
+          <br>
+          <input type="reset" style="visibility:hidden">
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+        <button type="button" class="btn btn-primary updBtn">Save changes</button>
+      </div>
+    </div><!-- /.modal-content -->
+  </div><!-- /.modal-dialog -->
+</div><!-- /.modal -->
+
+<script type="text/javascript">
+  $(function(){
+    //加载数据
+    function loadData(data){
+      data.forEach(function(item){
+        //var birth = item.birth?item.birth.slice(0,item.birth.indexOf('T')):'';
+        var newTr = $('<tr>'
+            +'<td><input type="checkbox" value="'+item.id+'"></td>'
+            +'<td>'+item.id+'</td>'
+            +'<td>'+item.name+'</td>'
+            +'<td>'+item.gender+'</td>'
+            +'<td>'+item.birth+'</td>'
+            +'<td>'+item.class_id+'</td>'
+          +'</tr>');
+        $('tbody').append(newTr);
+      })
+      clickChe();
+    }
+    //显示所有
+    $.getJSON('student/findAll',function(data){
+      loadData(data);
+    });
+    //确认修改
+    $('.updBtn').off();
+    $('.updBtn').on('click',function(){
+      var id = $('.studentForm input[name=id]').val();
+      var name = $('.studentForm input[name=name]').val();
+      var gender = $('.studentForm input:radio:checked').val();
+      var birth = $('.studentForm input[name=birth]').val();
+      var class_id=$('.studentForm select[name=class_id]:selected').val();
+      var newStudent = {
+          id:id,
+          name:name,
+          gender:gender,
+          birth:birth,
+          class_id:class_id
+        };
+      $.ajax('student/update',{
+        'data':newStudent,
+        'method':'POST',
+        'content-Type':'application/json',
+        success:function(data){
+          //清空模态框
+          $('input:reset').trigger('click');
+          $('.modal').modal('hide');
+          $('.navleft dd').eq(0).trigger('click');
+        }
+      })
+    });
+    //为修改按钮绑定事件
+    $('.opts button').eq(0).off();
+    $('.opts button').eq(0).on('click',function(){
+      var ids = $('tbody input:checkbox:checked').toArray().map(function(item){
+        return item.value;
+      });
+      if(ids.length>0){
+        var id = ids[0];
+        $.getJSON('student/findById?id='+id,function(data){
+          console.log("元素",$('.studentForm input[name=id]'));
+          console.log(data[0]);
+          console.log(data[0].gender);
+          $('.studentForm input[name=id]').val(data[0].id);
+          $('.studentForm input[name=name]').val(data[0].name);
+          if(data[0].gender == '男'){
+            $('input#male').prop("checked",true);
+          } else {
+            $('input#female').prop("checked",true);
+          }
+          $('.studentForm input[name=birth]').val(data[0].birth);
+          switch(data[0].class_id){
+            case 1:$('.studentForm select>option[value=1]').prop("selected",true);break;
+            case 2:$('.studentForm select>option[value=2]').prop("selected",true);break;
+            case 3:$('.studentForm select>option[value=3]').prop("selected",true);break;
+            default:$('.studentForm select>option[value=null]').prop("selected",true);
+          }                      
+          //显示模态框
+          $('.modal').modal('show');
+        })
+      }else {
+        alert("请选中您要修改的信息");
+      }
+    });
+    //添加
+    $('.opts button').eq(1).off();
+    $('.opts button').eq(1).on('click',function(){
+      $('.modal').modal('show');
+      $('.updBtn').off();
+      $('.updBtn').on('click',function(){
+        var id = $('.studentForm input[name=id]').val();
+        var name = $('.studentForm input[name=name]').val();
+        var gender = $('.studentForm input:radio:checked').val();
+        var birth = $('.studentForm input[name=birth]').val();
+        var class_id=$('.studentForm input[name=class_id]').val();
+        var newStudent = {
+            id:id,
+            name:name,
+            gender:gender,
+            birth:birth,
+            class_id:class_id
+          };
+        $.ajax('student/save',{
+          'data':newStudent,
+          'method':'POST',
+          'content-Type':'application/json',
+          success:function(data){
+            console.log(data);
+            //清空模态框
+            $('input:reset').trigger('click');
+            $('.modal').modal('hide');
+            $('.navleft dd').eq(0).trigger('click');
+          }
+        })
+      });
+    })
+    //删除
+    $('.opts button').eq(2).off();
+    $('.opts button').eq(2).on('click',function(){
+      var ids = $('tbody input:checkbox:checked').toArray().map(function(item){
+        return $(item).val();
+      });
+      console.log(ids);
+      if(ids == ''){
+        alert('请选中要删除的行');
+      } else {
+        var param = {
+          'ids[]':ids
+        }
+        $.post('student/batchDelete',param,function(data){
+            console.log(data);
+            $('.navleft dd').eq(0).trigger('click');
+        });
+      }
+    })
+    //全选
+    function clickChe(){
+      $('input#all').unbind();
+      $('input#all').bind('click',function(){
+          var bool = $(this).prop("checked");
+          $('tbody td>input').prop("checked",bool);
+      })
+      $('tbody td>input').click(function(event){
+          //判断是否全部选中
+          var bool = true;
+          var arrInp = $('tbody td>input').toArray();
+          bool = arrInp.every(function(item){
+              return $(item).prop("checked") == true;
+          });
+          $('input#all').prop("checked",bool);
+          event.stopPropagation();
+      });
+      $('tbody>tr>td').click(function(){
+          $(this).children('input').trigger('click');
+      })
+    }
+    //查询
+    $('form.search').submit(function(event){
+      $('tbody').empty();
+      var keys = $('input[type="search"]').val();
+      if(keys.match(/^[0-9]*$/)){
+        $.getJSON('student/findById?id='+keys,function(data){
+          if(data == ''){
+            $('tbody').append($('<span>没有查询到</span>'));
+          } else {
+            loadData(data);
+          }
+        })
+      } else {
+        $.getJSON('student/query/'+keys,function(data){
+          if(data == ''){
+            $('tbody').append($('<span>没有查询到</span>'));
+          } else {
+            loadData(data);
+          }
+        })
+      }
+      event.preventDefault();
+    });
+
+    
+  })
+</script>
